@@ -63,50 +63,34 @@ Después de corregir el fichero, volvemos a lanzar el worklow y observamos que t
 
 Creamos un fichero cd-front.yaml en .guthub/workflows con el siguiente contenido:
 ```
-name: CI-front
+name: Despliegue continuo front
 
 on:
-  pull_request:
-    branches: [ main ]
-    paths: ['hangman-front/**']
-  push:
-    branches: [ main ]
-    paths: [ 'hangman-front/**' ]
+  workflow_dispatch:
 
 jobs:
-  build:
+  buildAndPushImage:
     runs-on: ubuntu-latest
 
-    steps:
+    steps: 
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Setup Node.js version
-        uses: actions/setup-node@v6
+      - name: Login into GitHub Continer Registry
+        uses: docker/login-action@v4
         with:
-          node-version: 18
-      - name: Build
-        working-directory: ./hangman-front
-        run: |
-          npm ci
-          npm run build --if-present
-
-  test:
-    runs-on: ubuntu-22.04
-    needs: build
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup Node.js version
-        uses: actions/setup-node@v6
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Build and push Docker Image
+        uses: docker/build-push-action@v7
         with:
-          node-version: 18
-      - name: Unit tests
-        working-directory: ./hangman-front
-        run: |
-          npm ci
-          npm run test  
-
-
+          context: ./hangman-front
+          push: true
+          tags: dcarballor/hangman-front:latest
+          file: ./hangman-front/Dockerfile
 ```
-Nos vamos a la web de GitHub.
+A continuación hacemos add, commit y push.
+
+
